@@ -1,15 +1,10 @@
 import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { TextInput, Button, Text, useTheme } from "react-native-paper";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { Link, useRouter } from "expo-router";
 import { auth } from "../../src/config/firebase";
+import { useUI } from "../../src/context/UIContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -18,10 +13,12 @@ export default function Login() {
 
   const theme = useTheme();
   const router = useRouter();
+  const { showToast } = useUI();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      return Alert.alert("Error", "Please fill in all fields");
+      showToast("Please fill in all fields", "error");
+      return;
     }
 
     setLoading(true);
@@ -30,7 +27,7 @@ export default function Login() {
       // AuthContext should automatically detect user change and redirect
     } catch (error: any) {
       const errorMessage = error.message || "Something went wrong";
-      Alert.alert("Login Failed", errorMessage);
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }

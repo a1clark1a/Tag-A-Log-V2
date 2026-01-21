@@ -12,7 +12,6 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Singleton pattern
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 let auth: any;
@@ -20,6 +19,7 @@ let auth: any;
 try {
   auth = getAuth(app);
 } catch (e) {
+  // Initial with Manual Persistence since getReactNativePersistence no longer accessible in imports
   auth = initializeAuth(app, {
     persistence: {
       type: "LOCAL",

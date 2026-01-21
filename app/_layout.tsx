@@ -14,6 +14,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider, useAuth } from "../src/context/AuthContext";
 import { useEffect } from "react";
+import { UIProvider } from "../src/context/UIContext";
 
 const customPaperLightTheme = {
   ...MD3LightTheme,
@@ -73,8 +74,10 @@ export default function RootLayout() {
     <AuthProvider>
       <PaperProvider theme={paperTheme}>
         <NavigationThemeProvider value={navTheme}>
-          <StatusBar style={colorScheme === "dark" ? "dark" : "light"} />
-          <InitialLayout />
+          <UIProvider>
+            <StatusBar style={colorScheme === "dark" ? "dark" : "light"} />
+            <InitialLayout />
+          </UIProvider>
         </NavigationThemeProvider>
       </PaperProvider>
     </AuthProvider>
