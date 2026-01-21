@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Keyboard,
-  Platform,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Alert, Platform } from "react-native";
 import {
   Text,
   FAB,
@@ -22,10 +15,12 @@ import {
 import { useAuth } from "../../src/context/AuthContext";
 import { TagService } from "../../src/services/tagService";
 import { Tag } from "../../src/types";
+import { useUI } from "../../src/context/UIContext";
 
 export default function TagsScreen() {
   const { user } = useAuth();
   const theme = useTheme();
+  const { showToast } = useUI();
 
   const [tags, setTags] = useState<Tag[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -76,7 +71,7 @@ export default function TagsScreen() {
       }
       setVisible(false);
     } catch (err) {
-      Alert.alert("Error", "Could not save tag");
+      showToast("Could not save tag", "error");
     } finally {
       setLoading(false);
     }

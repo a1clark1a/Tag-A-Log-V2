@@ -1,16 +1,11 @@
 import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { TextInput, Button, Text, useTheme } from "react-native-paper";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../../src/config/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "expo-router";
+import { useUI } from "../../src/context/UIContext";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -18,10 +13,13 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const theme = useTheme();
   const router = useRouter();
+  const { showToast } = useUI();
 
   const handleRegister = async () => {
-    if (!email || !password)
-      return Alert.alert("Error", "Please fill in all fields");
+    if (!email || !password) {
+      showToast("Please fill in all fields", "error");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -39,7 +37,7 @@ export default function Register() {
       // Note: No need to redirect manually.
       // The AuthContext will detect the new user and auto-redirect to Tabs.
     } catch (error: any) {
-      Alert.alert("Registration Failed", error.message);
+      showToast("Registration Failed", "error");
     } finally {
       setLoading(false);
     }
