@@ -59,7 +59,7 @@ export const LogService = {
     }
   },
 
-  subscribneLogs: (userId: string, onUpdate: (logs: Log[]) => void) => {
+  subscribeLogs: (userId: string, onUpdate: (logs: Log[]) => void) => {
     const q = query(getLogCollection(userId), orderBy("createdAt", "desc"));
 
     return onSnapshot(q, (snapshot) => {
