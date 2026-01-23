@@ -114,14 +114,35 @@ export default function CreateLogScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text variant="titleMedium" style={{ marginBottom: 15, opacity: 0.5 }}>
-          {editingId ? "Editing Log" : "New Log"}
-        </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text
+            variant="titleMedium"
+            style={{ marginBottom: 15, opacity: 0.5 }}
+          >
+            {editingId ? "Editing Log" : "New Log"}
+          </Text>
+          <Text
+            variant="labelSmall"
+            style={{
+              opacity: 0.5,
+              color: title.length >= 20 ? theme.colors.error : undefined,
+            }}
+          >
+            {title.length}/20
+          </Text>
+        </View>
 
         <TextInput
           placeholder="Title"
           value={title}
           onChangeText={setTitle}
+          maxLength={20}
           mode="flat"
           style={[
             styles.input,
@@ -167,6 +188,7 @@ export default function CreateLogScreen() {
           value={content}
           onChangeText={setContent}
           multiline
+          maxLength={500}
           mode="flat"
           style={[styles.contentInput, { backgroundColor: "transparent" }]}
           underlineColor="transparent"

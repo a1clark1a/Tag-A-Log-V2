@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Text, Card, Chip, useTheme } from "react-native-paper";
 import { Log, Tag } from "../types";
 
@@ -84,5 +84,5 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 5,
   },
-  chip: { height: 24, alignItems: "center" },
+  chip: { height: 32, alignItems: "center" },
 });

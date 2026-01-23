@@ -1,7 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { View, StyleSheet, FlatList } from "react-native";
-import { Text, FAB, useTheme, ActivityIndicator } from "react-native-paper";
-import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, StyleSheet, FlatList, ScrollView } from "react-native";
+import {
+  Text,
+  FAB,
+  useTheme,
+  ActivityIndicator,
+  Searchbar,
+  Chip,
+} from "react-native-paper";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "../../src/context/AuthContext";
 import { Log, Tag } from "../../src/types";
 import { LogService } from "../../src/services/logService";
@@ -11,12 +18,16 @@ import { LogCard } from "../../src/components/LogCard";
 export default function LogsScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const params = useLocalSearchParams();
   const { user } = useAuth();
 
   const [logs, setLogs] = useState<Log[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
-  const [loadingTags, setLoadingTags] = useState<boolean>(true);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+  const [loadingTags, setLoadingTags] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -36,6 +47,42 @@ export default function LogsScreen() {
       unSubTags();
     };
   }, [user]);
+
+  useEffect(() => {
+    if (params.filterTags) {
+      const ids = (params.filterTags as string).split(",");
+      setSelectedTagIds(ids);
+    }
+
+    router.setParams({ filterTags: undefined });
+  }, [params.filterTags]);
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = log.title?.toLowerCase().includes(query);
+
+      let matchesTag = true;
+
+      if (selectedTagIds.length > 0) {
+        if (selectedTagIds.includes("UNTAGGED")) {
+          matchesTag = log.tagIds.length === 0;
+        } else {
+          matchesTag = log.tagIds.some((id) => selectedTagIds.includes(id));
+        }
+      }
+
+      return matchesSearch && matchesTag;
+    });
+  }, [logs, searchQuery, selectedTagIds]);
+
+  const toggleFilter = (id: string | null) => {
+    if (id === null) {
+      setSelectedTagIds([]);
+      return;
+    }
+    setSelectedTagIds([id]);
+  };
 
   const handleEdit = (log: Log) => {
     router.push({
@@ -66,10 +113,64 @@ export default function LogsScreen() {
         >
           Timeline
         </Text>
+
+        <Searchbar
+          placeholder="Search logs..."
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={{
+            marginBottom: 10,
+            backgroundColor: theme.colors.elevation.level2,
+          }}
+          inputStyle={{ minHeight: 0 }}
+        />
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ maxHeight: 40 }}
+        >
+          <Chip
+            selected={selectedTagIds.length === 0}
+            onPress={() => toggleFilter(null)}
+            style={{ marginRight: 8 }}
+          >
+            All
+          </Chip>
+
+          <Chip
+            selected={selectedTagIds.includes("UNTAGGED")}
+            onPress={() => toggleFilter("UNTAGGED")}
+            style={{ marginRight: 8 }}
+            showSelectedOverlay
+          >
+            Untagged
+          </Chip>
+
+          {tags.map((tag) => (
+            <Chip
+              key={tag.id}
+              selected={selectedTagIds.includes(tag.id)}
+              onPress={() => toggleFilter(tag.id)}
+              style={{
+                marginRight: 8,
+                backgroundColor: selectedTagIds.includes(tag.id)
+                  ? tag.color
+                  : undefined,
+              }}
+              textStyle={{
+                color: selectedTagIds.includes(tag.id) ? "white" : undefined,
+              }}
+              showSelectedOverlay
+            >
+              {tag.name}
+            </Chip>
+          ))}
+        </ScrollView>
       </View>
       {isLoading ? (
         <ActivityIndicator size="large" style={{ marginTop: 50 }} />
-      ) : logs.length === 0 ? (
+      ) : filteredLogs.length === 0 ? (
         <View style={styles.emptyState}>
           <Text variant="bodyLarge" style={{ opacity: 0.5 }}>
             {" "}
@@ -81,7 +182,7 @@ export default function LogsScreen() {
         </View>
       ) : (
         <FlatList
-          data={logs}
+          data={filteredLogs}
           keyExtractor={(item: Log) => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }: { item: Log }) => (
