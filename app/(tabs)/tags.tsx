@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, ScrollView, Alert, Platform } from "react-native";
 import {
   Text,
@@ -11,21 +11,29 @@ import {
   useTheme,
   IconButton,
   ActivityIndicator,
+  Searchbar,
 } from "react-native-paper";
 import { useAuth } from "../../src/context/AuthContext";
 import { TagService } from "../../src/services/tagService";
 import { Tag } from "../../src/types";
 import { useUI } from "../../src/context/UIContext";
+import { useRouter } from "expo-router";
 
 export default function TagsScreen() {
   const { user } = useAuth();
   const theme = useTheme();
+  const router = useRouter();
   const { showToast } = useUI();
 
   const [tags, setTags] = useState<Tag[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
+
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedForFilter, setSelectedForFilter] = useState<string[]>([]);
+
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState("#6200ee");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -41,14 +49,44 @@ export default function TagsScreen() {
     return () => unsubscribe();
   }, [user]);
 
+  const filteredTags = useMemo(() => {
+    return tags.filter((tag) =>
+      tag.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [tags, searchQuery]);
+
+  const handleNameChange = (text: string) => {
+    const cleaned = text.replace(/\s/g, "").slice(0, 10);
+    setTagName(cleaned);
+  };
+
+  const handleChipPress = (tag: Tag) => {
+    if (isSelectMode) {
+      setSelectedForFilter((prev) =>
+        prev.includes(tag.id)
+          ? prev.filter((id) => id !== tag.id)
+          : [...prev, tag.id],
+      );
+    } else {
+      openModal(tag);
+    }
+  };
+
+  const handleApplyFilter = () => {
+    router.push({
+      pathname: "/(tabs)",
+      params: { filterTags: selectedForFilter.join(",") },
+    });
+    setIsSelectMode(false);
+    setSelectedForFilter([]);
+  };
+
   const openModal = (tag?: Tag) => {
     if (tag) {
-      // Edit Mode
       setEditingId(tag.id);
       setTagName(tag.name);
       setTagColor(tag.color);
     } else {
-      // Create Mode
       setEditingId(null);
       setTagName("");
       setTagColor("#6200ee");
@@ -78,6 +116,8 @@ export default function TagsScreen() {
   };
 
   const handleDelete = (tagId: string) => {
+    if (isSelectMode) return;
+
     const title = "Delete Tag";
     const message = "Are you sure? This cannot be undone.";
 
@@ -118,47 +158,85 @@ export default function TagsScreen() {
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* Header */}
-
       <View style={styles.header}>
-        <Text
-          variant="headlineMedium"
-          style={{ color: theme.colors.primary, fontWeight: "bold" }}
-        >
-          My Tags
-        </Text>
-        <Text variant="bodyMedium" style={{ opacity: 0.7 }}>
+        <View style={styles.topRow}>
+          <Text
+            variant="headlineMedium"
+            style={{ color: theme.colors.primary, fontWeight: "bold" }}
+          >
+            {isSelectMode ? "Select Tags" : "Manage Tags"}
+          </Text>
+
+          <Button
+            mode={isSelectMode ? "contained-tonal" : "text"}
+            onPress={() => {
+              setIsSelectMode(!isSelectMode);
+              setSelectedForFilter([]); // Clear selection when toggling
+            }}
+          >
+            {isSelectMode ? "Cancel" : "Select"}
+          </Button>
+        </View>
+        <Text variant="bodyMedium" style={{ opacity: 0.7, paddingBottom: 10 }}>
           Create tags to organize your logs.
         </Text>
+        <Searchbar
+          placeholder="Search tags..."
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={styles.searchBar}
+          inputStyle={{ minHeight: 0 }}
+        />
       </View>
 
-      {/* Main Content */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {loadingInitial ? (
           <ActivityIndicator size="large" style={{ marginTop: 50 }} />
-        ) : tags.length === 0 ? (
+        ) : filteredTags.length === 0 ? (
           <Text style={{ textAlign: "center", marginTop: 50, opacity: 0.5 }}>
             No Tags yet, Tap + to add one.
           </Text>
         ) : (
           <View style={styles.grid}>
-            {tags.map((tag) => (
-              <Chip
-                key={tag.id}
-                style={[styles.chip, { backgroundColor: tag.color + "20" }]}
-                textStyle={{ color: theme.dark ? "white" : "black" }}
-                onClose={() => handleDelete(tag.id)}
-                onPress={() => openModal(tag)}
-                icon="tag"
-              >
-                {tag.name}
-              </Chip>
-            ))}
+            {filteredTags.map((tag) => {
+              const isSelected = selectedForFilter.includes(tag.id);
+              return (
+                <Chip
+                  key={tag.id}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: isSelectMode
+                        ? isSelected
+                          ? tag.color
+                          : theme.colors.surfaceVariant
+                        : tag.color + "20",
+                    },
+                  ]}
+                  textStyle={{
+                    color:
+                      isSelectMode && isSelected
+                        ? "white"
+                        : theme.dark
+                          ? "white"
+                          : "black",
+                  }}
+                  onClose={
+                    isSelectMode ? undefined : () => handleDelete(tag.id)
+                  }
+                  onPress={() => handleChipPress(tag)}
+                  icon="tag"
+                  showSelectedOverlay={isSelectMode}
+                  selected={isSelectMode && isSelected}
+                >
+                  {tag.name}
+                </Chip>
+              );
+            })}
           </View>
         )}
       </ScrollView>
 
-      {/* Create Modal */}
       <Portal>
         <Modal
           visible={visible}
@@ -178,7 +256,9 @@ export default function TagsScreen() {
           <TextInput
             label="Tag Name"
             value={tagName}
-            onChangeText={setTagName}
+            onChangeText={handleNameChange}
+            maxLength={10}
+            onKeyPress={(e) => e.nativeEvent.key === " " && e.preventDefault()}
             mode="outlined"
             style={{ marginBottom: 15 }}
           />
@@ -206,12 +286,14 @@ export default function TagsScreen() {
         </Modal>
       </Portal>
 
-      {/* Floating Action Button */}
       <FAB
-        icon="plus"
+        icon={isSelectMode ? "filter-check" : "plus"}
+        label={
+          isSelectMode ? `Filter (${selectedForFilter.length})` : undefined
+        }
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         color="white"
-        onPress={() => openModal()}
+        onPress={isSelectMode ? handleApplyFilter : () => openModal()}
       />
     </View>
   );
@@ -223,6 +305,13 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 10,
   },
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  searchBar: { backgroundColor: "rgba(0,0,0,0.05)" },
   scrollContent: { padding: 20 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { marginBottom: 4 },
