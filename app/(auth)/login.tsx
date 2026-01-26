@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { TextInput, Button, Text, useTheme } from "react-native-paper";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { Link, useRouter } from "expo-router";
 import { auth } from "../../src/config/firebase";
 import { useUI } from "../../src/context/UIContext";
+import { useAuth } from "../../src/context/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -13,6 +13,7 @@ export default function Login() {
 
   const theme = useTheme();
   const router = useRouter();
+  const { login, signInWithGoogle } = useAuth();
   const { showToast } = useUI();
 
   const handleLogin = async () => {
@@ -23,7 +24,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await login(email, password);
       // AuthContext should automatically detect user change and redirect
     } catch (error: any) {
       const errorMessage = error.message || "Something went wrong";
@@ -71,10 +72,18 @@ export default function Login() {
           mode="contained"
           onPress={handleLogin}
           loading={loading}
-          style={styles.button}
-          contentStyle={{ paddingVertical: 8 }}
+          style={{ marginTop: 10 }}
         >
           Login
+        </Button>
+
+        <Button
+          mode="outlined"
+          onPress={() => signInWithGoogle()}
+          icon="google"
+          style={{ marginTop: 15, borderColor: theme.colors.primary }}
+        >
+          Sign in with Google
         </Button>
 
         <Link href="/(auth)/register" asChild>

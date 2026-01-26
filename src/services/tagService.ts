@@ -1,17 +1,19 @@
 import {
   collection,
   addDoc,
-  deleteDoc,
+  writeBatch,
   doc,
   query,
   orderBy,
   onSnapshot,
   serverTimestamp,
   updateDoc,
+  where,
+  getDocs,
 } from "firebase/firestore";
 
 import { db } from "../config/firebase";
-import { DB_TAGS, DB_USERS, Tag } from "../types";
+import { DB_LOGS, DB_TAGS, DB_USERS, Tag } from "../types";
 
 // Path: users/{userId}/tags
 const getTagCollection = (userId: string) =>
@@ -44,8 +46,23 @@ export const TagService = {
 
   deleteTag: async (userId: string, tagId: string) => {
     try {
+      const batch = writeBatch(db);
+
       const tagRef = doc(db, DB_USERS, userId, DB_TAGS, tagId);
-      await deleteDoc(tagRef);
+      batch.delete(tagRef);
+
+      const logsRef = collection(db, DB_USERS, userId, DB_LOGS);
+      const q = query(logsRef, where("tagIds", "array-contains", tagId));
+      const snapshot = await getDocs(q);
+
+      snapshot.docs.forEach((docSnap) => {
+        const logData = docSnap.data();
+        const updatedTags = logData.tagIds.filter((id: string) => id !== tagId);
+
+        batch.update(docSnap.ref, { tagIds: updatedTags });
+      });
+
+      await batch.commit();
     } catch (error) {
       console.error("Error deleting tag:", error);
       throw error;

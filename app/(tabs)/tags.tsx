@@ -56,7 +56,7 @@ export default function TagsScreen() {
   }, [tags, searchQuery]);
 
   const handleNameChange = (text: string) => {
-    const cleaned = text.replace(/\s/g, "").slice(0, 10);
+    const cleaned = text.replace(/\s/g, "").slice(0, 20);
     setTagName(cleaned);
   };
 
@@ -257,7 +257,7 @@ export default function TagsScreen() {
             label="Tag Name"
             value={tagName}
             onChangeText={handleNameChange}
-            maxLength={10}
+            maxLength={20}
             onKeyPress={(e) => e.nativeEvent.key === " " && e.preventDefault()}
             mode="outlined"
             style={{ marginBottom: 15 }}
