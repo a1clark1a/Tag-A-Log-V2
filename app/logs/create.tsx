@@ -188,7 +188,7 @@ export default function CreateLogScreen() {
           value={content}
           onChangeText={setContent}
           multiline
-          maxLength={500}
+          maxLength={1000}
           mode="flat"
           style={[styles.contentInput, { backgroundColor: "transparent" }]}
           underlineColor="transparent"

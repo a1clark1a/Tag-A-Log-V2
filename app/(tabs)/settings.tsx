@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Alert, Platform } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, StyleSheet, Alert } from "react-native";
 import {
   Button,
   Text,
@@ -9,10 +9,12 @@ import {
   Switch,
   Dialog,
   Portal,
+  Banner,
 } from "react-native-paper";
+import { useFocusEffect } from "expo-router";
 import { useAuth } from "../../src/context/AuthContext";
 import { useUI } from "../../src/context/UIContext";
-import { useAppTheme } from "../../src/context/ThemeContext"; // <--- Required for Dark Mode
+import { useAppTheme } from "../../src/context/ThemeContext";
 import { UserService } from "../../src/services/userService";
 import { exportLogsToText } from "../../src/utils/exportUtils";
 import { getDocs, collection, query, orderBy } from "firebase/firestore";
@@ -21,21 +23,46 @@ import { Log } from "../../src/types";
 
 export default function SettingsScreen() {
   const theme = useTheme();
-
-  // 1. Get Auth functions (Sign Out)
   const { user, logout } = useAuth();
-
-  // 2. Get Theme functions (Dark Mode)
   const { isDark, toggleTheme } = useAppTheme();
-
   const { showToast } = useUI();
 
-  // State
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [accountStatus, setAccountStatus] = useState<string | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [daysLeft, setDaysLeft] = useState<number>(0);
 
-  // --- ACTIONS ---
+  const checkAccountStatus = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const result = await UserService.getAccountStatus(user.uid);
+
+      if (result && result.status === "scheduled_for_deletion") {
+        setAccountStatus("scheduled_for_deletion");
+
+        if (result.scheduledDate) {
+          const today = new Date();
+          const diffTime = result.scheduledDate.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          // Ensure we don't show negative days
+          setDaysLeft(diffDays > 0 ? diffDays : 0);
+        }
+      } else {
+        setAccountStatus(null);
+      }
+    } catch (error) {
+      console.error("Failed to check status", error);
+    }
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkAccountStatus();
+    }, [checkAccountStatus]),
+  );
 
   const handleExport = async () => {
     if (!user) return;
@@ -65,6 +92,9 @@ export default function SettingsScreen() {
     setDeleting(true);
     try {
       await UserService.scheduleDeletion(user.uid);
+      setAccountStatus("scheduled_for_deletion");
+      await checkAccountStatus();
+      setDeleteDialogVisible(false);
       Alert.alert(
         "Account Scheduled for Deletion",
         "Your account will be permanently deleted in 30 days. Log in anytime before then to cancel this request.",
@@ -77,11 +107,24 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleReactivate = async () => {
+    if (!user) return;
+    setLoadingStatus(true);
+    try {
+      await UserService.cancelDeletion(user.uid);
+      setAccountStatus(null);
+      showToast("Account Reactivated!", "info");
+    } catch (error) {
+      showToast("Failed to reactivate", "error");
+    } finally {
+      setLoadingStatus(false);
+    }
+  };
+
   return (
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* HEADER: Simple and Clean */}
       <View style={styles.header}>
         <Text
           variant="headlineLarge"
@@ -91,7 +134,18 @@ export default function SettingsScreen() {
         </Text>
       </View>
 
-      {/* SECTION 1: APPEARANCE (Dark Mode) */}
+      <Banner
+        visible={accountStatus === "scheduled_for_deletion"}
+        icon="alert"
+        style={{
+          marginBottom: 10,
+          borderRadius: 8,
+          backgroundColor: theme.colors.errorContainer,
+        }}
+      >
+        {`Your account is scheduled for deletion in ${daysLeft} days.`}
+      </Banner>
+
       <List.Section>
         <List.Subheader>Appearance</List.Subheader>
         <List.Item
@@ -103,7 +157,6 @@ export default function SettingsScreen() {
 
       <Divider />
 
-      {/* SECTION 2: DATA (Export) */}
       <List.Section>
         <List.Subheader>Data Management</List.Subheader>
         <List.Item
@@ -122,12 +175,8 @@ export default function SettingsScreen() {
       </List.Section>
 
       <Divider />
-
-      {/* SECTION 3: ACCOUNT (Sign Out & Delete) */}
       <List.Section>
         <List.Subheader>Account</List.Subheader>
-
-        {/* Sign Out Option */}
         <List.Item
           title="Sign Out"
           left={(props) => (
@@ -137,27 +186,46 @@ export default function SettingsScreen() {
               color={theme.colors.onSurface}
             />
           )}
-          onPress={logout} // <--- Calls AuthContext logout
+          onPress={logout}
         />
-
-        {/* Delete Account Option */}
-        <List.Item
-          title="Delete Account"
-          titleStyle={{ color: theme.colors.error }}
-          description="Permanently delete logs and tags"
-          descriptionStyle={{ color: theme.colors.error }}
-          left={(props) => (
-            <List.Icon
-              {...props}
-              icon="delete-forever"
-              color={theme.colors.error}
-            />
-          )}
-          onPress={() => setDeleteDialogVisible(true)}
-        />
+        {accountStatus === "scheduled_for_deletion" ? (
+          <List.Item
+            title="Reactivate Account"
+            titleStyle={{ color: theme.colors.primary, fontWeight: "bold" }}
+            description="Cancel the pending deletion"
+            left={(props) => (
+              <List.Icon
+                {...props}
+                icon="restore"
+                color={theme.colors.primary}
+              />
+            )}
+            onPress={handleReactivate}
+            right={(props) =>
+              loadingStatus ? (
+                <Button loading compact>
+                  Wait
+                </Button>
+              ) : null
+            }
+          />
+        ) : (
+          <List.Item
+            title="Delete Account"
+            titleStyle={{ color: theme.colors.error }}
+            description="Permanently delete logs and tags"
+            descriptionStyle={{ color: theme.colors.error }}
+            left={(props) => (
+              <List.Icon
+                {...props}
+                icon="delete-forever"
+                color={theme.colors.error}
+              />
+            )}
+            onPress={() => setDeleteDialogVisible(true)}
+          />
+        )}
       </List.Section>
-
-      {/* DELETE CONFIRMATION POPUP */}
       <Portal>
         <Dialog
           visible={deleteDialogVisible}
