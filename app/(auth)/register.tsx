@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
 import { TextInput, Button, Text, useTheme } from "react-native-paper";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "../../src/config/firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import { useUI } from "../../src/context/UIContext";
+import { useAuth } from "../../src/context/AuthContext";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -14,6 +12,7 @@ export default function Register() {
   const theme = useTheme();
   const router = useRouter();
   const { showToast } = useUI();
+  const { register } = useAuth();
 
   const handleRegister = async () => {
     if (!email || !password) {
@@ -23,16 +22,7 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password,
-      );
-
-      await setDoc(doc(db, "users", userCredential.user.uid), {
-        email: userCredential.user.email,
-        createdAt: serverTimestamp(),
-      });
+      await register(email, password);
 
       // Note: No need to redirect manually.
       // The AuthContext will detect the new user and auto-redirect to Tabs.
