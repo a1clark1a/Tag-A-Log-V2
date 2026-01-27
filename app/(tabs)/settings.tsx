@@ -188,6 +188,7 @@ export default function SettingsScreen() {
           )}
           onPress={logout}
         />
+
         {accountStatus === "scheduled_for_deletion" ? (
           <List.Item
             title="Reactivate Account"
