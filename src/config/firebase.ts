@@ -6,6 +6,7 @@ import {
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -29,5 +30,18 @@ try {
 }
 
 const db = getFirestore(app);
+
+if (Platform.OS !== "web") {
+  import("@react-native-google-signin/google-signin").then(
+    ({ GoogleSignin }) => {
+      GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        offlineAccess: true,
+        scopes: ["profile", "email"],
+      });
+    },
+  );
+}
 
 export { auth, db };

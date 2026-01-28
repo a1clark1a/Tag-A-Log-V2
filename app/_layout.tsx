@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "../src/context/AuthContext";
 import { useEffect } from "react";
 import { UIProvider } from "../src/context/UIContext";
 import { ThemeProvider } from "../src/context/ThemeContext";
+import ErrorBoundary from "../src/components/ErrorBoundary";
 
 const InitialLayout = () => {
   const { user, loading } = useAuth();
@@ -27,13 +28,15 @@ const InitialLayout = () => {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <UIProvider>
-        <AuthProvider>
-          <StatusBar style={"auto"} />
-          <InitialLayout />
-        </AuthProvider>
-      </UIProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <UIProvider>
+          <AuthProvider>
+            <StatusBar style={"auto"} />
+            <InitialLayout />
+          </AuthProvider>
+        </UIProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
