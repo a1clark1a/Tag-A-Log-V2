@@ -1,5 +1,12 @@
 import React, { useState, useCallback } from "react";
-import { View, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Alert,
+  Linking,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
 import {
   Button,
   Text,
@@ -15,6 +22,7 @@ import { useFocusEffect } from "expo-router";
 import { useAuth } from "../../src/context/AuthContext";
 import { useUI } from "../../src/context/UIContext";
 import { useAppTheme } from "../../src/context/ThemeContext";
+import { THEMES, ThemeId } from "../../src/config/themeConfig";
 import { UserService } from "../../src/services/userService";
 import { exportLogsToText } from "../../src/utils/exportUtils";
 import { getDocs, collection, query, orderBy } from "firebase/firestore";
@@ -24,7 +32,7 @@ import { Log } from "../../src/types";
 export default function SettingsScreen() {
   const theme = useTheme();
   const { user, logout } = useAuth();
-  const { isDark, toggleTheme } = useAppTheme();
+  const { isDark, toggleTheme, themeId, setAppTheme } = useAppTheme();
   const { showToast } = useUI();
 
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
@@ -147,12 +155,76 @@ export default function SettingsScreen() {
       </Banner>
 
       <List.Section>
-        <List.Subheader>Appearance</List.Subheader>
+        <List.Subheader>Theme</List.Subheader>
         <List.Item
           title="Dark Mode"
           left={(props) => <List.Icon {...props} icon="theme-light-dark" />}
           right={() => <Switch value={isDark} onValueChange={toggleTheme} />}
         />
+
+        <View style={styles.themeSelectorContainer}>
+          <Text
+            variant="bodyMedium"
+            style={{ marginLeft: 16, marginBottom: 10 }}
+          >
+            Color Palette
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.swatchList}
+          >
+            {(Object.keys(THEMES) as ThemeId[]).map((key) => {
+              const palette = THEMES[key];
+              const isSelected = themeId === key;
+
+              return (
+                <TouchableOpacity
+                  key={key}
+                  onPress={() => setAppTheme(key)}
+                  style={[
+                    styles.swatchContainer,
+
+                    isSelected && styles.swatchSelected,
+                  ]}
+                >
+                  <View style={styles.swatchCircle}>
+                    {/* Left Half: Primary Color */}
+                    <View
+                      style={[
+                        styles.swatchHalf,
+                        { backgroundColor: palette.primaryLight },
+                      ]}
+                    />
+                    {/* Right Half: Secondary Color */}
+                    <View
+                      style={[
+                        styles.swatchHalf,
+                        { backgroundColor: palette.primaryDark },
+                      ]}
+                    />
+                  </View>
+
+                  {isSelected && (
+                    <View style={styles.checkmarkContainer}>
+                      <List.Icon
+                        icon="check"
+                        color="#FFF"
+                        style={{ margin: 0 }}
+                      />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <Text
+            variant="labelSmall"
+            style={{ marginLeft: 16, opacity: 0.6, marginTop: 5 }}
+          >
+            {THEMES[themeId].name}
+          </Text>
+        </View>
       </List.Section>
 
       <Divider />
@@ -227,6 +299,27 @@ export default function SettingsScreen() {
           />
         )}
       </List.Section>
+
+      <Divider />
+      <List.Section>
+        <List.Subheader>Policy</List.Subheader>
+        <List.Item
+          title="Privacy Policy"
+          left={(props) => <List.Icon {...props} icon="shield-account" />}
+          onPress={() =>
+            Linking.openURL("https://your-project-id.web.app/privacy")
+          }
+        />
+        <List.Item
+          title="Terms of Service"
+          left={(props) => (
+            <List.Icon {...props} icon="file-document-outline" />
+          )}
+          onPress={() =>
+            Linking.openURL("https://your-project-id.web.app/terms")
+          }
+        />
+      </List.Section>
       <Portal>
         <Dialog
           visible={deleteDialogVisible}
@@ -266,4 +359,53 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   header: { marginBottom: 10, marginTop: 10 },
+  themeSelectorContainer: { marginBottom: 10 },
+  swatchContainer: {
+    marginRight: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  swatchList: {
+    paddingHorizontal: 16,
+    alignItems: "center",
+
+    minHeight: 70,
+  },
+  swatchCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    flexDirection: "row",
+    overflow: "hidden",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  swatchHalf: {
+    flex: 1,
+    height: "100%",
+  },
+
+  checkmarkContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowRadius: 4,
+  },
+  swatchSelected: {
+    transform: [{ scale: 1.1 }],
+    borderWidth: 2,
+    borderColor: "#888",
+    borderRadius: 30,
+    padding: 2,
+  },
 });

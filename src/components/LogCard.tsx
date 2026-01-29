@@ -61,7 +61,7 @@ export const LogCard = ({ log, tags, onPress }: LogCardProps) => {
             {tags.map((tag) => (
               <Chip
                 key={tag.id}
-                style={[styles.chip, { backgroundColor: tag.color + "20" }]}
+                style={[styles.chip, { backgroundColor: tag.color + "80" }]}
                 textStyle={{ fontSize: 11 }}
                 compact
               >

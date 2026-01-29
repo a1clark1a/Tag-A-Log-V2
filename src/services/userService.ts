@@ -12,15 +12,15 @@ import { DB_USERS } from "../types";
 
 export const UserService = {
   /**
-   * Schedules account for deletion in 30 days.
+   * Schedules account for deletion in 7 days.
    * This sets a flag that your backend (or login logic) checks.
    */
   scheduleDeletion: async (userId: string) => {
     const userRef = doc(db, DB_USERS, userId);
 
-    // Calculate date 30 days from now
+    // Calculate date 7 days from now
     const today = new Date();
-    const deletionDate = new Date(today.setDate(today.getDate() + 30));
+    const deletionDate = new Date(today.setDate(today.getDate() + 7));
 
     await setDoc(
       userRef,

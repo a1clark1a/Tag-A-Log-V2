@@ -292,7 +292,7 @@ export default function TagsScreen() {
           isSelectMode ? `Filter (${selectedForFilter.length})` : undefined
         }
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        color="white"
+        color="black"
         onPress={isSelectMode ? handleApplyFilter : () => openModal()}
       />
     </View>
