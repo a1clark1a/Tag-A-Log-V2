@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, StyleSheet, FlatList, ScrollView } from "react-native";
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  ScrollView,
+  Platform,
+  Image,
+} from "react-native";
 import {
   Text,
   FAB,
@@ -113,12 +120,29 @@ export default function LogsScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <View style={styles.header}>
-        <Text
-          variant="headlineLarge"
-          style={{ fontWeight: "bold", color: theme.colors.primary }}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingTop: Platform.OS === "android" ? 20 : 10,
+            paddingBottom: 10,
+          }}
         >
-          Timeline
-        </Text>
+          <Image
+            source={require("../../assets/logo.png")}
+            style={{ width: 50, height: 50, marginRight: 10 }}
+            resizeMode="contain"
+          />
+          <Text
+            variant="headlineLarge"
+            style={{
+              fontWeight: "bold",
+              color: theme.colors.primary,
+            }}
+          >
+            Tag-A-Log
+          </Text>
+        </View>
 
         <Searchbar
           placeholder="Search logs..."
@@ -168,10 +192,14 @@ export default function LogsScreen() {
                 marginRight: 8,
                 backgroundColor: selectedTagIds.includes(tag.id)
                   ? tag.color
-                  : theme.colors.primary + 80,
+                  : theme.colors.primary + 90,
               }}
               textStyle={{
-                color: selectedTagIds.includes(tag.id) ? "white" : undefined,
+                color: isDark
+                  ? selectedTagIds.includes(tag.id)
+                    ? "white"
+                    : "#e8def8"
+                  : undefined,
               }}
               showSelectedOverlay
             >
@@ -225,7 +253,11 @@ export default function LogsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
   list: { padding: 20, paddingBottom: 100 },
   emptyState: { flex: 1, justifyContent: "center", alignItems: "center" },
   fab: { position: "absolute", margin: 20, right: 0, bottom: 0 },
