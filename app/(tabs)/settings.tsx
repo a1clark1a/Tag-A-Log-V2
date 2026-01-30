@@ -6,6 +6,7 @@ import {
   Linking,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import {
   Button,
@@ -136,7 +137,12 @@ export default function SettingsScreen() {
       <View style={styles.header}>
         <Text
           variant="headlineLarge"
-          style={{ fontWeight: "bold", color: theme.colors.primary }}
+          style={{
+            fontWeight: "bold",
+            color: theme.colors.primary,
+            paddingTop: Platform.OS === "android" ? 20 : 10,
+            paddingBottom: 10,
+          }}
         >
           Settings
         </Text>

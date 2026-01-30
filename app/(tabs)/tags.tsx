@@ -162,7 +162,12 @@ export default function TagsScreen() {
         <View style={styles.topRow}>
           <Text
             variant="headlineMedium"
-            style={{ color: theme.colors.primary, fontWeight: "bold" }}
+            style={{
+              color: theme.colors.primary,
+              fontWeight: "bold",
+              paddingTop: Platform.OS === "android" ? 20 : 10,
+              paddingBottom: 10,
+            }}
           >
             {isSelectMode ? "Select Tags" : "Manage Tags"}
           </Text>
@@ -171,7 +176,11 @@ export default function TagsScreen() {
             mode={isSelectMode ? "contained-tonal" : "text"}
             onPress={() => {
               setIsSelectMode(!isSelectMode);
-              setSelectedForFilter([]); // Clear selection when toggling
+              setSelectedForFilter([]);
+            }}
+            style={{
+              paddingTop: Platform.OS === "android" ? 20 : 10,
+              paddingBottom: 10,
             }}
           >
             {isSelectMode ? "Cancel" : "Select"}
@@ -184,7 +193,7 @@ export default function TagsScreen() {
           placeholder="Search tags..."
           onChangeText={setSearchQuery}
           value={searchQuery}
-          style={styles.searchBar}
+          style={{ backgroundColor: theme.colors.elevation.level2 }}
           inputStyle={{ minHeight: 0 }}
         />
       </View>
@@ -210,7 +219,7 @@ export default function TagsScreen() {
                         ? isSelected
                           ? tag.color
                           : theme.colors.surfaceVariant
-                        : tag.color + "20",
+                        : tag.color + 90,
                     },
                   ]}
                   textStyle={{
@@ -311,7 +320,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
-  searchBar: { backgroundColor: "rgba(0,0,0,0.05)" },
   scrollContent: { padding: 20 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { marginBottom: 4 },

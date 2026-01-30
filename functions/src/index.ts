@@ -40,6 +40,7 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
+// TODO: STILL NEED TO DEPLOY
 export const deleteExpiredAccounts = onSchedule(
   "every 24 hours",
   async (event) => {
