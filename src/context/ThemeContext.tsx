@@ -6,70 +6,23 @@ import React, {
   ReactNode,
 } from "react";
 import { useColorScheme } from "react-native";
-import {
-  MD3DarkTheme,
-  MD3LightTheme,
-  adaptNavigationTheme,
-  Provider as PaperProvider,
-} from "react-native-paper";
-import {
-  DarkTheme as NavDarkTheme,
-  DefaultTheme as NavDefaultTheme,
-  ThemeProvider as NavigationThemeProvider,
-} from "@react-navigation/native";
+import { Provider as PaperProvider } from "react-native-paper";
+import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const customPaperLightTheme = {
-  ...MD3LightTheme,
-  colors: {
-    ...MD3LightTheme.colors,
-    primary: "#6200ee",
-    secondary: "#03dac6",
-  },
-};
-
-const customPaperDarkTheme = {
-  ...MD3DarkTheme,
-  colors: {
-    ...MD3DarkTheme.colors,
-    primary: "#bb86fc",
-    secondary: "#03dac6",
-  },
-};
-
-const { LightTheme: navigationLightTheme, DarkTheme: navigationDarkTheme } =
-  adaptNavigationTheme({
-    reactNavigationLight: NavDefaultTheme,
-    reactNavigationDark: NavDarkTheme,
-    materialLight: customPaperLightTheme,
-    materialDark: customPaperDarkTheme,
-  });
-
-const CombinedDefaultTheme = {
-  ...MD3LightTheme,
-  colors: {
-    ...MD3LightTheme.colors,
-    ...navigationLightTheme.colors,
-  },
-};
-
-const CombinedDarkTheme = {
-  ...MD3DarkTheme,
-  colors: {
-    ...MD3DarkTheme.colors,
-    ...navigationDarkTheme.colors,
-  },
-};
+import { getAppTheme, ThemeId, THEMES } from "../config/themeConfig";
 
 interface ThemeContextType {
   isDark: boolean;
+  themeId: ThemeId;
   toggleTheme: () => void;
+  setAppTheme: (id: ThemeId) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const useAppTheme = () => {
   const context = useContext(ThemeContext);
+
   if (!context)
     throw new Error("useAppTheme must be used within a ThemeProvider");
   return context;
@@ -78,29 +31,45 @@ export const useAppTheme = () => {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const systemScheme = useColorScheme();
   const [isDark, setIsDark] = useState(systemScheme === "dark");
+  const [themeId, setThemeId] = useState<ThemeId>("green");
 
   useEffect(() => {
-    const loadTheme = async () => {
-      const saved = await AsyncStorage.getItem("userTheme");
-      if (saved !== null) {
-        setIsDark(saved === "true");
+    const loadSettings = async () => {
+      try {
+        const savedDark = await AsyncStorage.getItem("userThemeDark");
+        const savedId = await AsyncStorage.getItem("userThemeId");
+
+        if (savedDark !== null) {
+          setIsDark(savedDark === "true");
+        }
+        if (savedId !== null && Object.keys(THEMES).includes(savedId)) {
+          setThemeId(savedId as ThemeId);
+        }
+      } catch (error) {
+        console.error("Failed to load theme settings", error);
       }
     };
 
-    loadTheme();
+    loadSettings();
   }, []);
 
   const toggleTheme = async () => {
     const newVal = !isDark;
     setIsDark(newVal);
-    await AsyncStorage.setItem("userTheme", String(newVal));
+    await AsyncStorage.setItem("userThemeDark", String(newVal));
   };
 
-  const theme = (isDark ? CombinedDarkTheme : CombinedDefaultTheme) as any;
+  const setAppTheme = async (id: ThemeId) => {
+    setThemeId(id);
+    await AsyncStorage.setItem("userThemeId", id);
+  };
+  const { paperTheme, navigationTheme } = getAppTheme(themeId, isDark);
   return (
-    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
-      <PaperProvider theme={theme}>
-        <NavigationThemeProvider value={theme}>
+    <ThemeContext.Provider
+      value={{ isDark, themeId, toggleTheme, setAppTheme }}
+    >
+      <PaperProvider theme={paperTheme}>
+        <NavigationThemeProvider value={navigationTheme}>
           {children}
         </NavigationThemeProvider>
       </PaperProvider>

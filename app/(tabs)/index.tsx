@@ -14,10 +14,12 @@ import { Log, Tag } from "../../src/types";
 import { LogService } from "../../src/services/logService";
 import { TagService } from "../../src/services/tagService";
 import { LogCard } from "../../src/components/LogCard";
+import { useAppTheme } from "../../src/context/ThemeContext";
 
 export default function LogsScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const { isDark } = useAppTheme();
   const params = useLocalSearchParams();
   const { user } = useAuth();
 
@@ -77,11 +79,15 @@ export default function LogsScreen() {
   }, [logs, searchQuery, selectedTagIds]);
 
   const toggleFilter = (id: string | null) => {
-    if (id === null) {
-      setSelectedTagIds([]);
-      return;
-    }
-    setSelectedTagIds([id]);
+    setSelectedTagIds((prevItems) => {
+      if (id === null) {
+        return [];
+      }
+      const exists = prevItems.includes(id);
+      return exists
+        ? prevItems.filter((item) => item !== id)
+        : [...prevItems, id];
+    });
   };
 
   const handleEdit = (log: Log) => {
@@ -133,7 +139,10 @@ export default function LogsScreen() {
           <Chip
             selected={selectedTagIds.length === 0}
             onPress={() => toggleFilter(null)}
-            style={{ marginRight: 8 }}
+            style={{
+              marginRight: 8,
+              backgroundColor: theme.colors.primary + 80,
+            }}
           >
             All
           </Chip>
@@ -141,7 +150,10 @@ export default function LogsScreen() {
           <Chip
             selected={selectedTagIds.includes("UNTAGGED")}
             onPress={() => toggleFilter("UNTAGGED")}
-            style={{ marginRight: 8 }}
+            style={{
+              marginRight: 8,
+              backgroundColor: theme.colors.primary + 80,
+            }}
             showSelectedOverlay
           >
             Untagged
@@ -156,7 +168,7 @@ export default function LogsScreen() {
                 marginRight: 8,
                 backgroundColor: selectedTagIds.includes(tag.id)
                   ? tag.color
-                  : undefined,
+                  : theme.colors.primary + 80,
               }}
               textStyle={{
                 color: selectedTagIds.includes(tag.id) ? "white" : undefined,
@@ -195,12 +207,16 @@ export default function LogsScreen() {
         />
       )}
 
-      {/* The + Button */}
       <FAB
         icon="plus"
         label="New Log"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        color="white"
+        style={[
+          styles.fab,
+          {
+            backgroundColor: theme.colors.primary,
+          },
+        ]}
+        color="black"
         onPress={() => router.push("/logs/create")}
       />
     </View>
